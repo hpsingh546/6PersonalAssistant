@@ -1,7 +1,7 @@
 [v] Project setup
-[] Setup LLM
-[] Setup the tools - create event tool, get event tool
-[] Build the graph
+[v] Setup LLM
+[v] Setup the tools - create event tool, get event tool
+[v] Build the graph
 [] Implement the tools - Connect to Google calendar
 [] get events
 [] create events
