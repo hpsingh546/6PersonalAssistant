@@ -13,11 +13,11 @@ const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 oauth2Client.setCredentials(tokens);
 
 // Get the list of events.
-type Params={
-  q:string;
-  timeMin:string;
-  timeMax:string
-}
+type Params = {
+  q: string;
+  timeMin: string;
+  timeMax: string;
+};
 export const getEventsTool = tool(
   async (params) => {
     /**
@@ -25,30 +25,32 @@ export const getEventsTool = tool(
      * timeMin
      * timeMax
      */
-    const { timeMin, timeMax, q } = params as Params;
-    console.log(timeMin, timeMax, q)
+    const { timeMin, timeMax, q } = params as Params;//whatever we receive in param we should validate unless ai continue make tool call as he dont know 
+    console.log(timeMin, timeMax, q);
     try {
       const result = await calendar.events.list({
         calendarId: "primary", //CALENDER ID IS MANDATORY AND IT IS EMAILD  OR NEED TO MENTION PRIMARY TO ACCESS DEFAULT CALENDER//in order to find parameter we go to refrence inside documentation https://developers.google.com/workspace/calendar/api/v3/reference/events/list
         // q:"tiger analytics"
-        q:q,
-        timeMax:timeMax,
-        timeMin:timeMin
+        q: q,
+        timeMax: timeMax,
+        timeMin: timeMin,
       });
-      const finalResult=result.data.items?.map((event)=>{return {
-         id: event.id,
-                    summary: event.summary,
-                    status: event.status,
-                    organiser: event.organizer,
-                    start: event.start,
-                    end: event.end,
-                    attendees: event.attendees,
-                    meetingLink: event.hangoutLink,
-                    eventType: event.eventType,
-      } })
-      
+      const finalResult = result.data.items?.map((event) => {
+        return {
+          id: event.id,
+          summary: event.summary,
+          status: event.status,
+          organiser: event.organizer,
+          start: event.start,
+          end: event.end,
+          attendees: event.attendees,
+          meetingLink: event.hangoutLink,
+          eventType: event.eventType,
+        };
+      });
+
       console.log(finalResult);
-      return JSON.stringify(finalResult)
+      return JSON.stringify(finalResult);
     } catch (err) {
       console.log(err);
     }
@@ -74,19 +76,73 @@ export const getEventsTool = tool(
   },
 );
 
-
+type attendee = {
+  email: string;
+  displayName: string;
+};
+type EventData = {
+  summary: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+  attendees: attendee[];
+};
 export const createEventTool = tool(
-  async ({ query }) => {
+  async (eventData) => {
     // Google calendar logicheck create a  meetingc goes
-    return "The meeting has been created.";
+    const { summary, start, end, attendees } = eventData as EventData;
+    const response = await calendar.events.insert({
+      calendarId: "primary",
+      conferenceDataVersion: 1,
+      sendUpdates: "all",
+      requestBody: {
+        summary,
+        start,
+        end,
+        attendees,
+        conferenceData: {
+          createRequest: {
+            requestId: crypto.randomUUID(),
+            conferenceSolutionKey: {
+              type: "hangoutsMeet",
+            },
+          },
+        },
+      },
+    });
+
+    if (response.statusText === "OK") {
+      return "The meeting has been created.";
+    }
+
+    return "Couldn't create a meeting.";
   },
   {
     name: "create-event",
     description: "Call to create the calendar events.",
     schema: z.object({
-      query: z
-        .string()
-        .describe("The query to use in calendar to create event."),
+      summary: z.string().describe("The title of the event"),
+      start: z.object({
+        dateTime: z
+          .string()
+          .describe("The start date time of the event in UTC"),
+        timeZone: z.string().describe("The timezone of the event time in UTC"),
+      }),
+      end: z.object({
+        dateTime: z.string().describe("The end date time of the event in UTC"),
+        timeZone: z.string().describe("The timezone of the event time in UTC"),
+      }),
+      attendees: z.array(
+        z.object({
+          email: z.string().describe("The email of the attendee"),
+          displayName: z.string().describe("Then name of the attendee."),
+        }),
+      ),
     }),
   },
 );

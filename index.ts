@@ -48,7 +48,10 @@ const graph = new StateGraph(MessagesAnnotation)
 const app = graph.compile();
 async function main() {
   const result = await app.invoke({
-    messages: [{ role: "user", content: "do i have meeting from last year march till now " }],
+    messages: [{ role: "user", content:   'Can you create a meeting with Harmanpreet singh(harmanpreetsingh004@gmail.com) at 4PM today about Backend discussion?',
+      //               'Do i have any meeting today ?',
+      // "do i have meeting from last year march till now "
+     }],
   });
   const message = result.messages;
     console.log("Ai:", message?.[message.length - 1]?.content);
