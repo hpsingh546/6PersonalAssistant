@@ -75,23 +75,42 @@ export const getEventsTool = tool(
     }),
   },
 );
-
-type attendee = {
-  email: string;
-  displayName: string;
-};
-type EventData = {
-  summary: string;
-  start: {
-    dateTime: string;
-    timeZone: string;
-  };
-  end: {
-    dateTime: string;
-    timeZone: string;
-  };
-  attendees: attendee[];
-};
+const createEventSchema=z.object({
+      summary: z.string().describe("The title of the event"),
+      start: z.object({
+        dateTime: z
+          .string()
+          .describe("The start date time of the event in UTC"),
+        timeZone: z.string().describe("The timezone of the event time in UTC"),
+      }),
+      end: z.object({
+        dateTime: z.string().describe("The end date time of the event in UTC"),
+        timeZone: z.string().describe("The timezone of the event time in UTC"),
+      }),
+      attendees: z.array(
+        z.object({
+          email: z.string().describe("The email of the attendee"),
+          displayName: z.string().describe("Then name of the attendee."),
+        }),
+      ),
+    })
+    type EventData=z.infer<typeof createEventSchema>//evendata is as same as we earlier use it=first we make zod se schema then we push it inside the as infer
+// type attendee = {
+//   email: string;
+//   displayName: string;
+// };
+// type EventData = {
+//   summary: string;
+//   start: {
+//     dateTime: string;
+//     timeZone: string;
+//   };
+//   end: {
+//     dateTime: string;
+//     timeZone: string;
+//   };
+//   attendees: attendee[];
+// };
 export const createEventTool = tool(
   async (eventData) => {
     // Google calendar logicheck create a  meetingc goes
@@ -125,24 +144,6 @@ export const createEventTool = tool(
   {
     name: "create-event",
     description: "Call to create the calendar events.",
-    schema: z.object({
-      summary: z.string().describe("The title of the event"),
-      start: z.object({
-        dateTime: z
-          .string()
-          .describe("The start date time of the event in UTC"),
-        timeZone: z.string().describe("The timezone of the event time in UTC"),
-      }),
-      end: z.object({
-        dateTime: z.string().describe("The end date time of the event in UTC"),
-        timeZone: z.string().describe("The timezone of the event time in UTC"),
-      }),
-      attendees: z.array(
-        z.object({
-          email: z.string().describe("The email of the attendee"),
-          displayName: z.string().describe("Then name of the attendee."),
-        }),
-      ),
-    }),
+    schema: createEventSchema,
   },
 );
