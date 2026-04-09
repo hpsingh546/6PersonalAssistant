@@ -48,7 +48,7 @@ const graph = new StateGraph(MessagesAnnotation)
 const app = graph.compile();
 async function main() {
   const result = await app.invoke({
-    messages: [{ role: "user", content: "do i have meeting" }],
+    messages: [{ role: "user", content: "do i have meeting from last year march till now " }],
   });
   const message = result.messages;
     console.log("Ai:", message?.[message.length - 1]?.content);
