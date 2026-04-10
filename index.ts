@@ -1,8 +1,11 @@
 import { ChatGroq } from "@langchain/groq";
 import { createEventTool, getEventsTool } from "./tools";
-import { StateGraph, MessagesAnnotation, END } from "@langchain/langgraph";
+import { StateGraph, MessagesAnnotation, END, MemorySaver } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import type { AIMessage } from "langchain";
+
+import readline from "node:readline/promises";
+
 const tools: any = [createEventTool, getEventsTool]; //ARRAY OF CUSTOME TOLL
 
 const model = new ChatGroq({
@@ -11,7 +14,7 @@ const model = new ChatGroq({
 }).bindTools(tools);
 
 async function callModel(state: typeof MessagesAnnotation.State) {
-  console.log("calling model...");
+  console.log("calling Assistant...");
   const resp = await model.invoke(state.messages); //send all the message to llm
   // console.log("Response from model", resp);
   // console.log("LLm Response=>", resp); // Here, we are appending the LLM's response message to the 'messages' array.
@@ -31,6 +34,7 @@ function shouldcontinue(state: typeof MessagesAnnotation.State) {
 
   // If the LLM wants to use a tool, go to the "Tools" node
   if (lastMessage.tool_calls?.length) {
+    console.log("tool call details",lastMessage.tool_calls)
     return "Tools";
   }
   // Otherwise, stop
@@ -45,16 +49,35 @@ const graph = new StateGraph(MessagesAnnotation)
     __end__: END,
     Tools: "Tools",
   }); //2
-const app = graph.compile();
+   // 3. Initialize MemorySaver
+const memory = new MemorySaver();//memory setup step 1
+const app = graph.compile({checkpointer:memory});//step 2 pass as argument to graph
 async function main() {
-  const result = await app.invoke({
-     messages: [{ role: "user", content: //  'Can you create a meeting with Harmanpreet singh(harmanpreetsingh004@gmail.com) at 4PM today about Backend discussion?',
-                    'Do i have any meeting today ?',
-      // "do i have meeting from last year march till now "
-     }],
+   const config = { configurable: { thread_id: "conversation-123" } };
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
   });
-  const message = result.messages;
+  while (true) {
+    const userQuery = await rl.question("You: ");
+
+    if (userQuery === "bye") break;
+
+    const result = await app.invoke({
+      messages: [
+        {
+          role: "user",
+          //  'Can you create a meeting with Harmanpreet singh(harmanpreetsingh004@gmail.com) at 4PM today about Backend discussion?',
+          content:userQuery
+          // "do i have meeting from last year march till now "
+        },
+      ],
+    },config);
+    const message = result.messages;
     console.log("Ai:", message?.[message.length - 1]?.content);
-  // console.log(result);
+    // console.log(result);
+  }
+  rl.close();
 }
 main();

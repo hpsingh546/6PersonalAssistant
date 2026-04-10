@@ -8,9 +8,9 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.Client_ID,
   process.env.Client_secret,
   process.env.Redirect_URL,
-);
+);//It tells Google who your app is and where to send the user after they log in (Redirect URL).
 const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-oauth2Client.setCredentials(tokens);
+oauth2Client.setCredentials(tokens);//If the tokens object contains a refresh_token, this library will automatically refresh the access token for you whenever it expires, so you don't have to write manual refresh logic.
 
 // Get the list of events.
 type Params = {
@@ -25,7 +25,7 @@ export const getEventsTool = tool(
      * timeMin
      * timeMax
      */
-    const { timeMin, timeMax, q } = params as Params;//whatever we receive in param we should validate unless ai continue make tool call as he dont know 
+    const { timeMin, timeMax, q } = params as Params;//whatever we receive in param we should validate in the zod schema unless ai continue make tool call as he dont know 
     console.log(timeMin, timeMax, q);
     try {
       const result = await calendar.events.list({
@@ -49,7 +49,7 @@ export const getEventsTool = tool(
         };
       });
 
-      console.log(finalResult);
+      // console.log(finalResult);
       return JSON.stringify(finalResult);
     } catch (err) {
       console.log(err);
