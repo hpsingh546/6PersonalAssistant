@@ -1,12 +1,17 @@
 import { ChatGroq } from "@langchain/groq";
-import { createEventTool, getEventsTool } from "./tools";
-import { StateGraph, MessagesAnnotation, END, MemorySaver } from "@langchain/langgraph";
+import { createEventTool, deleteEventTool, getEventsTool, Search,updateEventTool } from "./tools";
+import {
+  StateGraph,
+  MessagesAnnotation,
+  END,
+  MemorySaver,
+} from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import type { AIMessage } from "langchain";
 
 import readline from "node:readline/promises";
 
-const tools: any = [createEventTool, getEventsTool]; //ARRAY OF CUSTOME TOLL
+const tools: any = [createEventTool, getEventsTool,Search,updateEventTool,deleteEventTool]; //ARRAY OF CUSTOME TOLL
 
 const model = new ChatGroq({
   model: "openai/gpt-oss-120b",
@@ -34,7 +39,7 @@ function shouldcontinue(state: typeof MessagesAnnotation.State) {
 
   // If the LLM wants to use a tool, go to the "Tools" node
   if (lastMessage.tool_calls?.length) {
-    console.log("tool call details",lastMessage.tool_calls)
+    console.log("tool call details", lastMessage.tool_calls);
     return "Tools";
   }
   // Otherwise, stop
@@ -49,11 +54,11 @@ const graph = new StateGraph(MessagesAnnotation)
     __end__: END,
     Tools: "Tools",
   }); //2
-   // 3. Initialize MemorySaver
-const memory = new MemorySaver();//memory setup step 1
-const app = graph.compile({checkpointer:memory});//step 2 pass as argument to graph
+// 3. Initialize MemorySaver
+const memory = new MemorySaver(); //memory setup step 1
+const app = graph.compile({ checkpointer: memory }); //step 2 pass as argument to graph
 async function main() {
-   const config = { configurable: { thread_id: "conversation-123" } };
+  const config = { configurable: { thread_id: "conversation-123" } };
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -63,17 +68,30 @@ async function main() {
     const userQuery = await rl.question("You: ");
 
     if (userQuery === "bye") break;
+    const currentDateTime = new Date()
+      .toLocaleString("sv-SE")
+      .replace(" ", "T");
+    const timeZoneString = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    const result = await app.invoke({
-      messages: [
-        {
-          role: "user",
-          //  'Can you create a meeting with Harmanpreet singh(harmanpreetsingh004@gmail.com) at 4PM today about Backend discussion?',
-          content:userQuery
-          // "do i have meeting from last year march till now "
-        },
-      ],
-    },config);
+    const result = await app.invoke(
+      {
+        messages: [
+          {
+            role: "system",
+            content: `You are a smart personal assistant.your name is ${process.env.systemName}.you should be poilite and always give ans in concise way
+                        Current datetime: ${currentDateTime}
+                        Current timezone string: ${timeZoneString}`,
+          },
+          {
+            role: "user",
+            //  'Can you create a meeting with Harmanpreet singh(harmanpreetsingh004@gmail.com) at 4PM today about Backend discussion?',
+            content: userQuery,
+            // "do i have meeting from last year march till now "
+          },
+        ],
+      },
+      config,
+    );
     const message = result.messages;
     console.log("Ai:", message?.[message.length - 1]?.content);
     // console.log(result);
